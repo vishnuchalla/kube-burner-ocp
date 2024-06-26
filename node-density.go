@@ -30,6 +30,8 @@ func NewNodeDensity(wh *workloads.WorkloadHelper) *cobra.Command {
 	var podsPerNode int
 	var podReadyThreshold time.Duration
 	var containerImage string
+	var namespacedIterations bool
+	var iterationsPerNamespace int
 	cmd := &cobra.Command{
 		Use:          "node-density",
 		Short:        "Runs node-density workload",
@@ -44,6 +46,8 @@ func NewNodeDensity(wh *workloads.WorkloadHelper) *cobra.Command {
 			os.Setenv("JOB_ITERATIONS", fmt.Sprint(totalPods-podCount))
 			os.Setenv("POD_READY_THRESHOLD", fmt.Sprintf("%v", podReadyThreshold))
 			os.Setenv("CONTAINER_IMAGE", containerImage)
+			os.Setenv("NAMESPACED_ITERATIONS", fmt.Sprint(namespacedIterations))
+			os.Setenv("ITERATIONS_PER_NAMESPACE", fmt.Sprint(iterationsPerNamespace))
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			setMetrics(cmd, "metrics.yml")
@@ -53,5 +57,7 @@ func NewNodeDensity(wh *workloads.WorkloadHelper) *cobra.Command {
 	cmd.Flags().IntVar(&podsPerNode, "pods-per-node", 245, "Pods per node")
 	cmd.Flags().DurationVar(&podReadyThreshold, "pod-ready-threshold", 15*time.Second, "Pod ready timeout threshold")
 	cmd.Flags().StringVar(&containerImage, "container-image", "gcr.io/google_containers/pause:3.1", "Container image")
+	cmd.Flags().BoolVar(&namespacedIterations, "namespaced-iterations", true, "Namespaced iterations")
+	cmd.Flags().IntVar(&iterationsPerNamespace, "iterations-per-namespace", 1000, "Iterations per namespace")
 	return cmd
 }
