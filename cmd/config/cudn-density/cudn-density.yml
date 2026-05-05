@@ -113,6 +113,15 @@ jobs:
           - conditionType: Ready
             metric: P99
             threshold: {{.POD_READY_THRESHOLD}}
+    incrementalLoad:
+      startIterations: 25
+      totalIterations: {{.JOB_ITERATIONS}}
+      stepDelay: 60s
+      healthCheckScript: cudn-health-check.sh
+      pattern:
+        type: linear
+        linear:
+          stepSize: 25
     churnConfig:
       cycles: {{.CHURN_CYCLES}}
       duration: {{.CHURN_DURATION}}
