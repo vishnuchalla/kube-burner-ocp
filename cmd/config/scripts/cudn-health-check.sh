@@ -1,7 +1,7 @@
 #!/bin/bash
 set -u
 
-STABLE_WAIT="3m"
+STABLE_WAIT="1m"
 
 # Move pprof data if it exists
 if [ -d "pprof-data" ]; then
