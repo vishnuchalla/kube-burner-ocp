@@ -2166,16 +2166,16 @@
 <span class="go">  -h, --help                      help for kube-burner-ocp</span>
 <span class="go">      --ignore-health-check       Run cluster health check, but ignore failures</span>
 <span class="go">      --local-indexing            Enable local indexing</span>
-<span class="go">      --log-level string          Allowed values: debug, info, warn, error, fatal (default &quot;info&quot;)</span>
+<span class="go">      --log-level string          Allowed values: debug, info, warn, error, fatal (default "info")</span>
 <span class="go">      --metrics-endpoint string   YAML file with a list of metric endpoints, overrides the es-server and es-index flags</span>
-<span class="go">      --profile-type string       Metrics profile to use, supported options are: regular, reporting or both (default &quot;both&quot;)</span>
+<span class="go">      --profile-type string       Metrics profile to use, supported options are: regular, reporting or both (default "both")</span>
 <span class="go">      --prometheus-token string   Prometheus bearer token to use with --prometheus-url</span>
 <span class="go">      --prometheus-url string     Prometheus endpoint URL, overrides OpenShift Prometheus discovery</span>
 <span class="go">      --qps int                   QPS (default 20)</span>
 <span class="go">      --set strings               Set arbitrary key=value pairs to override values in the config file</span>
 <span class="go">      --timeout duration          Benchmark timeout (default 4h0m0s)</span>
 <span class="go">      --user-metadata string      User provided metadata file, in YAML format</span>
-<span class="go">      --uuid string               Benchmark UUID (default &quot;46d08f73-1b12-4137-8e00-67d9c7f069b7&quot;)</span>
+<span class="go">      --uuid string               Benchmark UUID (default "46d08f73-1b12-4137-8e00-67d9c7f069b7")</span>
 </code></pre></div>
 <h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
 <p>Documentation is <a href="https://kube-burner.github.io/kube-burner-ocp/">available here</a></p>
@@ -2213,10 +2213,10 @@ before running the script</p>
 </code></pre></div>
 <p>The <code>jobSummary</code> document will include:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;workloadFlags&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;podsPerNode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;100&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;churnCycles&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;5&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;churnPercent&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;10&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"workloadFlags"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"podsPerNode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"100"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"churnCycles"</span><span class="p">:</span><span class="w"> </span><span class="s2">"5"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"churnPercent"</span><span class="p">:</span><span class="w"> </span><span class="s2">"10"</span><span class="p">,</span>
 <span class="w">    </span><span class="err">...</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
@@ -2238,7 +2238,7 @@ For example:</p>
 <span class="w">  </span><span class="nt">alerts</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alerts.yml</span>
 <span class="w">  </span><span class="nt">indexer</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">esServers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;{{.ES_SERVER}}&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">      </span><span class="nt">esServers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"{{.ES_SERVER}}"</span><span class="p p-Indicator">]</span>
 <span class="w">      </span><span class="nt">insecureSkipVerify</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="w">      </span><span class="nt">defaultIndex</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{{</span><span class="nv">.ES_INDEX</span><span class="p p-Indicator">}}</span>
 <span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">opensearch</span>
@@ -2247,7 +2247,7 @@ For example:</p>
 <span class="w">  </span><span class="nt">metrics</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">metrics.yml</span>
 <span class="w">  </span><span class="nt">indexer</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">esServers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;{{.ES_SERVER}}&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">      </span><span class="nt">esServers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"{{.ES_SERVER}}"</span><span class="p p-Indicator">]</span>
 <span class="w">      </span><span class="nt">insecureSkipVerify</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="w">      </span><span class="nt">defaultIndex</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{{</span><span class="nv">.ES_INDEX</span><span class="p p-Indicator">}}</span>
 <span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">opensearch</span>
@@ -2578,14 +2578,14 @@ For example:</p>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">ipam</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
 <span class="w">    </span><span class="no">{</span>
-<span class="w">      </span><span class="no">&quot;type&quot;: &quot;whereabouts&quot;,</span>
-<span class="w">      </span><span class="no">&quot;range&quot;: &quot;172.20.0.0/16&quot;</span>
+<span class="w">      </span><span class="no">"type": "whereabouts",</span>
+<span class="w">      </span><span class="no">"range": "172.20.0.0/16"</span>
 <span class="w">    </span><span class="no">}</span>
 <span class="w">  </span><span class="nt">logLevel</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">info</span>
 <span class="w">  </span><span class="nt">networkNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">node-density-cni-0</span>
 <span class="w">  </span><span class="nt">resourceName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">servervfs</span>
-<span class="w">  </span><span class="nt">spoofChk</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;off&quot;</span>
-<span class="w">  </span><span class="nt">trust</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;on&quot;</span>
+<span class="w">  </span><span class="nt">spoofChk</span><span class="p">:</span><span class="w"> </span><span class="s">"off"</span>
+<span class="w">  </span><span class="nt">trust</span><span class="p">:</span><span class="w"> </span><span class="s">"on"</span>
 </code></pre></div></li>
 </ul>
 <p>Note: This workload calculates the number of iterations to create from the number of nodes and desired pods per node.  In order to keep the test scalable and performant, chunks of 1000 iterations will by broken into separate namespaces, using the config variable <code>iterationsPerNamespace</code>.</p>
@@ -2609,8 +2609,8 @@ For example:</p>
 <span class="go">    - key: num</span>
 <span class="go">      operator: In</span>
 <span class="go">      values:</span>
-<span class="go">      - &quot;1&quot;</span>
-<span class="go">      - &quot;2&quot;</span>
+<span class="go">      - "1"</span>
+<span class="go">      - "2"</span>
 <span class="go">  ingress:</span>
 <span class="go">  - from:</span>
 <span class="go">    - namespaceSelector:</span>
@@ -2625,8 +2625,8 @@ For example:</p>
 <span class="go">       - key: num</span>
 <span class="go">         operator: In</span>
 <span class="go">         values:</span>
-<span class="go">         - &quot;1&quot;</span>
-<span class="go">         - &quot;2&quot;</span>
+<span class="go">         - "1"</span>
+<span class="go">         - "2"</span>
 <span class="go">    ports:</span>
 <span class="go">    - port: 8080</span>
 <span class="go">      protocol: TCP</span>
@@ -2659,7 +2659,7 @@ Our templating logic is implemented as follows:
 <span class="go">        // Iterate through the list of remote namespaces to pair with the remote pod.</span>
 <span class="go">        for idx, remoteNamespace := range remoteNamespaces {</span>
 <span class="go">            // Combine the remote namespace and pod into a unique pair for ACL configuration.</span>
-<span class="go">            combine := fmt.Sprintf(&quot;%s:%s&quot;, remoteNamespace, remotePod)</span>
+<span class="go">            combine := fmt.Sprintf("%s:%s", remoteNamespace, remotePod)</span>
 
 <span class="go">            // Stop iterating once we’ve exhausted the allowed number of remote namespaces.</span>
 <span class="go">            if idx == num_remote_namespace {</span>
@@ -2752,11 +2752,11 @@ kube-burner measures network policy latency through connection testing. Currentl
 <span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">metallb-system</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">nodeSelector</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">node-role.kubernetes.io/worker-metallb</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span>
+<span class="w">    </span><span class="nt">node-role.kubernetes.io/worker-metallb</span><span class="p">:</span><span class="w"> </span><span class="s">""</span>
 <span class="w">  </span><span class="nt">speakerTolerations</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Example&quot;</span>
-<span class="w">    </span><span class="nt">operator</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Exists&quot;</span>
-<span class="w">    </span><span class="nt">effect</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;NoExecute&quot;</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">"Example"</span>
+<span class="w">    </span><span class="nt">operator</span><span class="p">:</span><span class="w"> </span><span class="s">"Exists"</span>
+<span class="w">    </span><span class="nt">effect</span><span class="p">:</span><span class="w"> </span><span class="s">"NoExecute"</span>
 </code></pre></div>
  - <strong>SRIOV operator</strong> with its corresponding <em>SriovNetworkNodePolicy</em></p>
 <div class="highlight"><pre><span></span><code>Note : Please find the recommended *SriovNetworkNodePolicy* for pod churn at high %
@@ -2775,7 +2775,7 @@ spec:
     pfNames:
     - ens1f1#0-19
   nodeSelector:
-    node-role.kubernetes.io/worker-dpdk: &quot;&quot;
+    node-role.kubernetes.io/worker-dpdk: ""
   numVfs: 60
   priority: 99
   resourceName: dpdkvfs
@@ -2792,7 +2792,7 @@ spec:
     pfNames:
     - ens1f1#20-59
   nodeSelector:
-    node-role.kubernetes.io/worker-dpdk: &quot;&quot;
+    node-role.kubernetes.io/worker-dpdk: ""
   numVfs: 60
   priority: 99
   resourceName: servervfs
@@ -2809,7 +2809,7 @@ spec:
     pfNames:
     - ens1f1
   nodeSelector:
-    node-role.kubernetes.io/customcnf: &quot;enabled&quot;
+    node-role.kubernetes.io/customcnf: "enabled"
   numVfs: 60
   priority: 50
   resourceName: servervfs
@@ -2826,7 +2826,7 @@ spec:
     pfNames:
     - ens1f1
   nodeSelector:
-    node-role.kubernetes.io/worker-metallb: &quot;&quot;
+    node-role.kubernetes.io/worker-metallb: ""
   numVfs: 60
   priority: 50
   resourceName: servervfs
@@ -3253,7 +3253,7 @@ If not supported, the access mode may be changes by setting <code>--access-mode<
 </table>
 <p>The CUDN template uses Go template conditionals to generate scenario-specific configurations:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">network</span><span class="p">:</span>
-<span class="p p-Indicator">{{</span><span class="w"> </span><span class="nv">if eq .scenario &quot;north-south-l3&quot;</span><span class="w"> </span><span class="p p-Indicator">}}</span>
+<span class="p p-Indicator">{{</span><span class="w"> </span><span class="nv">if eq .scenario "north-south-l3"</span><span class="w"> </span><span class="p p-Indicator">}}</span>
 <span class="w">    </span><span class="nt">topology</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Layer3</span>
 <span class="w">    </span><span class="nt">layer3</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Primary</span>
@@ -3264,7 +3264,7 @@ If not supported, the access mode may be changes by setting <code>--access-mode<
 <span class="w">      </span><span class="nt">vtep</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">evpn-vtep</span>
 <span class="w">      </span><span class="nt">ipVRF</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">vni</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;l3vni&gt;</span>
-<span class="p p-Indicator">{{</span><span class="w"> </span><span class="nv">else if eq .scenario &quot;north-south&quot;</span><span class="w"> </span><span class="p p-Indicator">}}</span>
+<span class="p p-Indicator">{{</span><span class="w"> </span><span class="nv">else if eq .scenario "north-south"</span><span class="w"> </span><span class="p p-Indicator">}}</span>
 <span class="w">    </span><span class="nt">topology</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Layer2</span>
 <span class="w">    </span><span class="nt">layer2</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Primary</span>
@@ -3286,7 +3286,7 @@ If not supported, the access mode may be changes by setting <code>--access-mode<
 <span class="w">      </span><span class="nt">vtep</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">evpn-vtep</span>
 <span class="w">      </span><span class="nt">macVRF</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">vni</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;l2vni&gt;</span>
-<span class="w">        </span><span class="nt">routeTarget</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;65000:&lt;l2vni&gt;&quot;</span>
+<span class="w">        </span><span class="nt">routeTarget</span><span class="p">:</span><span class="w"> </span><span class="s">"65000:&lt;l2vni&gt;"</span>
 <span class="p p-Indicator">{{</span><span class="w"> </span><span class="nv">end</span><span class="w"> </span><span class="p p-Indicator">}}</span>
 </code></pre></div>
 <h3 id="configuration-flags">Configuration Flags<a class="headerlink" href="#configuration-flags" title="Permanent link">&para;</a></h3>
@@ -3362,7 +3362,7 @@ If not supported, the access mode may be changes by setting <code>--access-mode<
 <span class="go">kube-burner-ocp evpn --scenario east-west --iterations 10</span>
 </code></pre></div>
 <h4 id="north-south-scenario-external-traffic-with-l2l3">North-South Scenario (External Traffic with L2+L3)<a class="headerlink" href="#north-south-scenario-external-traffic-with-l2l3" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><span class="gp"># </span>Test<span class="w"> </span>external<span class="w"> </span>connectivity<span class="w"> </span>-<span class="w"> </span>requires<span class="w"> </span>external<span class="w"> </span>webserver.<span class="w"> </span><span class="s2">&quot;--create-ext-frr-vrf&quot;</span><span class="w"> </span>runs<span class="w"> </span>the<span class="w"> </span>external<span class="w"> </span>webserver<span class="w"> </span>on<span class="w"> </span>the<span class="w"> </span><span class="nb">local</span><span class="w"> </span>host<span class="w"> </span>and<span class="w"> </span>does<span class="w"> </span>other<span class="w"> </span>necessary<span class="w"> </span>configuration
+<div class="highlight"><pre><span></span><code><span class="gp"># </span>Test<span class="w"> </span>external<span class="w"> </span>connectivity<span class="w"> </span>-<span class="w"> </span>requires<span class="w"> </span>external<span class="w"> </span>webserver.<span class="w"> </span><span class="s2">"--create-ext-frr-vrf"</span><span class="w"> </span>runs<span class="w"> </span>the<span class="w"> </span>external<span class="w"> </span>webserver<span class="w"> </span>on<span class="w"> </span>the<span class="w"> </span><span class="nb">local</span><span class="w"> </span>host<span class="w"> </span>and<span class="w"> </span>does<span class="w"> </span>other<span class="w"> </span>necessary<span class="w"> </span>configuration
 <span class="go">kube-burner-ocp evpn --scenario north-south \</span>
 <span class="go">  --create-ext-frr-vrf \</span>
 <span class="go">  --external-webserver-ip 172.27.187.82 \</span>
@@ -3370,7 +3370,7 @@ If not supported, the access mode may be changes by setting <code>--access-mode<
 <span class="go">  --iterations 10</span>
 </code></pre></div>
 <h4 id="north-south-l3-scenario-external-traffic-with-l3-only">North-South L3 Scenario (External Traffic with L3 only).<a class="headerlink" href="#north-south-l3-scenario-external-traffic-with-l3-only" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><span class="gp"># </span>Test<span class="w"> </span>Layer<span class="w"> </span><span class="m">3</span><span class="w"> </span>external<span class="w"> </span>connectivity.<span class="w"> </span><span class="s2">&quot;--create-ext-frr-vrf&quot;</span><span class="w"> </span>runs<span class="w"> </span>the<span class="w"> </span>external<span class="w"> </span>webserver<span class="w"> </span>on<span class="w"> </span>the<span class="w"> </span><span class="nb">local</span><span class="w"> </span>host<span class="w"> </span>and<span class="w"> </span>does<span class="w"> </span>other<span class="w"> </span>necessary<span class="w"> </span>configuration
+<div class="highlight"><pre><span></span><code><span class="gp"># </span>Test<span class="w"> </span>Layer<span class="w"> </span><span class="m">3</span><span class="w"> </span>external<span class="w"> </span>connectivity.<span class="w"> </span><span class="s2">"--create-ext-frr-vrf"</span><span class="w"> </span>runs<span class="w"> </span>the<span class="w"> </span>external<span class="w"> </span>webserver<span class="w"> </span>on<span class="w"> </span>the<span class="w"> </span><span class="nb">local</span><span class="w"> </span>host<span class="w"> </span>and<span class="w"> </span>does<span class="w"> </span>other<span class="w"> </span>necessary<span class="w"> </span>configuration
 <span class="go">kube-burner-ocp evpn --scenario north-south-l3 \</span>
 <span class="go">  --create-ext-frr-vrf \</span>
 <span class="go">  --external-webserver-ip 172.27.187.82 \</span>
@@ -3576,46 +3576,46 @@ When a RouteAdvertisement is created, it advertises the selected CUDN's subnet t
 <p>One document, such as the following, is indexed per each internal (through Routeadvertisment CRD) and external route (adding ip address on dummy interface) created by the workload:</p>
 <div class="highlight"><pre><span></span><code><span class="p">[</span>
 <span class="w">  </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-04-15T08:41:10Z&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;metricName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;raLatencyMeasurement&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;uuid&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2c8a64a8-0409-4d17-8643-c28db8216821&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;jobName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;udn-bgp-route-advertisements&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;routeAdvertisementName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ra-0&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;metadata&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;ocpMajorVersion&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;4.19&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;ocpVersion&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;4.19.0-ec.3&quot;</span>
+<span class="w">    </span><span class="nt">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2025-04-15T08:41:10Z"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"metricName"</span><span class="p">:</span><span class="w"> </span><span class="s2">"raLatencyMeasurement"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"uuid"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2c8a64a8-0409-4d17-8643-c28db8216821"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"jobName"</span><span class="p">:</span><span class="w"> </span><span class="s2">"udn-bgp-route-advertisements"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"routeAdvertisementName"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ra-0"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"metadata"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"ocpMajorVersion"</span><span class="p">:</span><span class="w"> </span><span class="s2">"4.19"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"ocpVersion"</span><span class="p">:</span><span class="w"> </span><span class="s2">"4.19.0-ec.3"</span>
 <span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;scenario&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ExportRoutes&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;latency&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="nt">"scenario"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ExportRoutes"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"latency"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">      </span><span class="mi">10031</span>
 <span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;minReadyLatency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10031</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;maxReadyLatency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10031</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;readyLatency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10031</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;netlinkRouteLatency&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="nt">"minReadyLatency"</span><span class="p">:</span><span class="w"> </span><span class="mi">10031</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"maxReadyLatency"</span><span class="p">:</span><span class="w"> </span><span class="mi">10031</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"readyLatency"</span><span class="p">:</span><span class="w"> </span><span class="mi">10031</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"netlinkRouteLatency"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">      </span><span class="mi">10026</span>
 <span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;maxNetlinkRouteLatency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10026</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;minNetlinkRouteLatency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10026</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;p99NetlinkRouteLatency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10026</span>
+<span class="w">    </span><span class="nt">"maxNetlinkRouteLatency"</span><span class="p">:</span><span class="w"> </span><span class="mi">10026</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"minNetlinkRouteLatency"</span><span class="p">:</span><span class="w"> </span><span class="mi">10026</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"p99NetlinkRouteLatency"</span><span class="p">:</span><span class="w"> </span><span class="mi">10026</span>
 <span class="w">  </span><span class="p">},</span>
 <span class="w">  </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-04-15T08:42:20.060393739Z&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;metricName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;raLatencyMeasurement&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;uuid&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2c8a64a8-0409-4d17-8643-c28db8216821&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;jobName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;udn-bgp-route-advertisements&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;routeAdvertisementName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;20.0.1.1/24&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;metadata&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;ocpMajorVersion&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;4.19&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;ocpVersion&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;4.19.0-ec.3&quot;</span>
+<span class="w">    </span><span class="nt">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2025-04-15T08:42:20.060393739Z"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"metricName"</span><span class="p">:</span><span class="w"> </span><span class="s2">"raLatencyMeasurement"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"uuid"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2c8a64a8-0409-4d17-8643-c28db8216821"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"jobName"</span><span class="p">:</span><span class="w"> </span><span class="s2">"udn-bgp-route-advertisements"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"routeAdvertisementName"</span><span class="p">:</span><span class="w"> </span><span class="s2">"20.0.1.1/24"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"metadata"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"ocpMajorVersion"</span><span class="p">:</span><span class="w"> </span><span class="s2">"4.19"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"ocpVersion"</span><span class="p">:</span><span class="w"> </span><span class="s2">"4.19.0-ec.3"</span>
 <span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;scenario&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ImportRoutes&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;latency&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="nt">"scenario"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ImportRoutes"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"latency"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">      </span><span class="mi">13</span>
 <span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;minReadyLatency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">13</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;maxReadyLatency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">13</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;readyLatency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">13</span>
+<span class="w">    </span><span class="nt">"minReadyLatency"</span><span class="p">:</span><span class="w"> </span><span class="mi">13</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"maxReadyLatency"</span><span class="p">:</span><span class="w"> </span><span class="mi">13</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"readyLatency"</span><span class="p">:</span><span class="w"> </span><span class="mi">13</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">]</span>
 </code></pre></div>
@@ -4136,21 +4136,21 @@ optimization of the OLMv1 stack.</p>
 <span class="go">      --churn-cycles int               Churn cycles to execute</span>
 <span class="go">      --churn-delay duration           Time to wait between each churn (default 2m0s)</span>
 <span class="go">      --churn-duration duration        Churn duration (default 5m0s)</span>
-<span class="go">      --churn-mode string              Either namespaces, to churn entire namespaces or objects, to churn individual objects (default &quot;namespaces&quot;)</span>
+<span class="go">      --churn-mode string              Either namespaces, to churn entire namespaces or objects, to churn individual objects (default "namespaces")</span>
 <span class="go">      --churn-percent int              Percentage of job iterations that kube-burner will churn each round (default 10)</span>
 <span class="go">  -c, --config string                  Config file path or url</span>
-<span class="go">      --deletion-strategy string       GC deletion mode, default deletes entire namespaces and gvr deletes objects within namespaces before deleting the parent namespace (default &quot;default&quot;)</span>
+<span class="go">      --deletion-strategy string       GC deletion mode, default deletes entire namespaces and gvr deletes objects within namespaces before deleting the parent namespace (default "default")</span>
 <span class="go">  -h, --help                           help for init</span>
-<span class="go">      --iterations int                 Job iterations. Mutually exclusive with &#39;--pods-per-node&#39;</span>
+<span class="go">      --iterations int                 Job iterations. Mutually exclusive with '--pods-per-node'</span>
 <span class="go">      --iterations-per-namespace int   Iterations per namespace (default 1)</span>
 <span class="go">      --namespaced-iterations          Namespaced iterations (default true)</span>
-<span class="go">      --pods-per-node int              Pods per node. Mutually exclusive with &#39;--iterations&#39;</span>
+<span class="go">      --pods-per-node int              Pods per node. Mutually exclusive with '--iterations'</span>
 <span class="go">      --service-latency                Enable service latency measurement</span>
 </code></pre></div>
 <p>Creating a custom workload for kube-burner-ocp is a seamless process, and you have the flexibility to craft it according to your specific needs. Below is a template to guide you through the customization of your workload:</p>
 <div class="highlight"><pre><span></span><code><span class="nn">---</span>
 <span class="nt">indexers</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">esServers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;{{.ES_SERVER}}&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">esServers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"{{.ES_SERVER}}"</span><span class="p p-Indicator">]</span>
 <span class="w">    </span><span class="nt">insecureSkipVerify</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="w">    </span><span class="nt">defaultIndex</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{{</span><span class="nv">.ES_INDEX</span><span class="p p-Indicator">}}</span>
 <span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">opensearch</span>
@@ -4191,12 +4191,12 @@ optimization of the OLMv1 stack.</p>
 <span class="go">  kube-burner-ocp index [flags]</span>
 
 <span class="go">Flags:</span>
-<span class="go">  -m, --metrics-profile string     Metrics profile file (default &quot;metrics.yml&quot;)</span>
-<span class="go">      --metrics-directory string   Directory to dump the metrics files in, when using default local indexing (default &quot;collected-metrics&quot;)</span>
+<span class="go">  -m, --metrics-profile string     Metrics profile file (default "metrics.yml")</span>
+<span class="go">      --metrics-directory string   Directory to dump the metrics files in, when using default local indexing (default "collected-metrics")</span>
 <span class="go">  -s, --step duration              Prometheus step size (default 30s)</span>
 <span class="go">      --start int                  Epoch start time</span>
 <span class="go">      --end int                    Epoch end time</span>
-<span class="go">  -j, --job-name string            Indexing job name (default &quot;kube-burner-ocp-indexing&quot;)</span>
+<span class="go">  -j, --job-name string            Indexing job name (default "kube-burner-ocp-indexing")</span>
 <span class="go">      --user-metadata string       User provided metadata file, in YAML format</span>
 <span class="go">  -h, --help                       help for index</span>
 </code></pre></div>
