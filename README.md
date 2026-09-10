@@ -1578,7 +1578,7 @@ This workload creates pods in a single namespace that are handled by a single Cl
 
 This workload measures the latency and throughput overhead of the MaaS (Models-as-a-Service) AI Gateway on OpenShift. It runs A/B tests comparing direct-to-simulator performance (baseline) against gateway-routed performance across multiple AI providers, payload sizes, and concurrency levels.
 
-The workload deploys a multi-provider LLM simulator (`llm-d-inference-sim`), registers it as 5 ExternalModel CRs with corresponding HTTPRoutes and Secrets, then runs GuideLLM benchmarks as native Kubernetes Jobs. The GuideLLM container image (`quay.io/rsevilla/guidellm-parser`) includes both the benchmark tool and a results parser that indexes directly to OpenSearch.
+The workload deploys a multi-provider LLM simulator (`llm-d-inference-sim`), registers it as 5 ExternalModel CRs with corresponding HTTPRoutes and Secrets, then runs GuideLLM benchmarks as native Kubernetes Jobs. The GuideLLM container image (`ghcr.io/cloud-bulldozer/guidellm-results-parser`) includes both the benchmark tool and a results parser that indexes directly to OpenSearch.
 
 The job config uses Go template loops over providers, payload sizes, and concurrency levels — the full test matrix is generated dynamically from CLI flags with zero code duplication.
 
@@ -1607,12 +1607,12 @@ kube-burner-ocp maas-gateway-perf
 | `--providers` | Comma-separated provider model names | `gpt-4o-openai,claude-sonnet-anthropic` |
 | `--payload-sizes` | Comma-separated sizes: small(32/64), medium(256/512), large(1024/1024), very-large(2048/2048) | `small,medium` |
 | `--concurrency-levels` | Comma-separated concurrency levels | `8,32,64,128,512` |
-| `--benchmark-duration` | Seconds per benchmark run | `90` |
-| `--warmup` | Warmup seconds discarded from results | `30` |
-| `--guidellm-image` | GuideLLM container image with parser | `quay.io/rsevilla/guidellm-parser:latest` |
+| `--benchmark-duration` | Duration of each benchmark run | `90s` |
+| `--warmup` | Warmup period discarded from results | `30s` |
+| `--guidellm-image` | GuideLLM container image with parser | `ghcr.io/cloud-bulldozer/guidellm-results-parser:v0.0.4` |
 | `--samples` | Benchmark samples per Job (K8s Job completions) | `3` |
 | `--parallelism` | K8s Job parallelism | `1` |
-| `--pause` | Pause after each benchmark before Job pod exits | `10s` |
+| `--pause` | Pause after each benchmark job completes | `10s` |
 | `--metrics-profile` | Metrics profiles to use | `maas-gateway-perf-metrics.yml` |
 
 ### Test Matrix
@@ -1673,7 +1673,7 @@ kube-burner-ocp maas-gateway-perf \
   --providers=gpt-4o-openai \
   --payload-sizes=small \
   --concurrency-levels=8,64 \
-  --benchmark-duration=30 --warmup=10 --samples=1
+  --benchmark-duration=30s --warmup=10s --samples=1
 ```
 
 Extract and customize the config:

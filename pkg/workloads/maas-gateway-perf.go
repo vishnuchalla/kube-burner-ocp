@@ -17,16 +17,19 @@ package workloads
 import (
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/kube-burner/kube-burner/v2/pkg/workloads"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 // NewMaasGatewayPerf holds MaaS Gateway performance benchmark workload
 func NewMaasGatewayPerf(wh *workloads.WorkloadHelper) *cobra.Command {
 	var gatewayHost, gatewayIP, simulatorHost, providers, payloadSizes, concurrencyLevels string
-	var guidellmImage, pause string
-	var benchmarkDuration, warmup, samples, parallelism int
+	var guidellmImage string
+	var benchmarkDuration, warmup, pause time.Duration
+	var samples, parallelism int
 	var metricsProfiles []string
 	var rc int
 
@@ -37,15 +40,17 @@ func NewMaasGatewayPerf(wh *workloads.WorkloadHelper) *cobra.Command {
 			setMetrics(cmd, metricsProfiles)
 			AdditionalVars["GATEWAY_HOST"] = gatewayHost
 			AdditionalVars["GATEWAY_IP"] = gatewayIP
-			if u, err := url.Parse(gatewayHost); err == nil {
-				AdditionalVars["GATEWAY_HOSTNAME"] = u.Hostname()
+			u, err := url.Parse(gatewayHost)
+			if err != nil || u.Scheme == "" || u.Hostname() == "" {
+				log.Fatalf("Invalid --gateway-host %q: expected a full URL including scheme and host, e.g. https://maas.apps.example.com", gatewayHost)
 			}
+			AdditionalVars["GATEWAY_HOSTNAME"] = u.Hostname()
 			AdditionalVars["SIMULATOR_HOST"] = simulatorHost
 			AdditionalVars["PROVIDERS"] = providers
 			AdditionalVars["PAYLOAD_SIZES"] = payloadSizes
 			AdditionalVars["CONCURRENCY_LEVELS"] = concurrencyLevels
-			AdditionalVars["BENCHMARK_DURATION"] = benchmarkDuration
-			AdditionalVars["WARMUP"] = warmup
+			AdditionalVars["BENCHMARK_DURATION"] = int(benchmarkDuration.Seconds())
+			AdditionalVars["WARMUP"] = int(warmup.Seconds())
 			AdditionalVars["GUIDELLM_IMAGE"] = guidellmImage
 			AdditionalVars["SAMPLES"] = samples
 			AdditionalVars["PARALLELISM"] = parallelism
@@ -62,12 +67,12 @@ func NewMaasGatewayPerf(wh *workloads.WorkloadHelper) *cobra.Command {
 	cmd.Flags().StringVar(&providers, "providers", "gpt-4o-openai,claude-sonnet-anthropic", "Comma-separated provider model names")
 	cmd.Flags().StringVar(&payloadSizes, "payload-sizes", "small,medium", "Comma-separated payload sizes from: small(32/64), medium(256/512), large(1024/1024), very-large(2048/2048)")
 	cmd.Flags().StringVar(&concurrencyLevels, "concurrency-levels", "8,32,64,128,512", "Comma-separated concurrency levels")
-	cmd.Flags().IntVar(&benchmarkDuration, "benchmark-duration", 90, "Seconds per benchmark run")
-	cmd.Flags().IntVar(&warmup, "warmup", 30, "Warmup seconds discarded")
-	cmd.Flags().StringVar(&guidellmImage, "guidellm-image", "quay.io/rsevilla/guidellm-parser:latest", "GuideLLM container image with parser")
+	cmd.Flags().DurationVar(&benchmarkDuration, "benchmark-duration", 90*time.Second, "Duration of each benchmark run")
+	cmd.Flags().DurationVar(&warmup, "warmup", 30*time.Second, "Warmup period discarded from results")
+	cmd.Flags().StringVar(&guidellmImage, "guidellm-image", "ghcr.io/cloud-bulldozer/guidellm-results-parser:v0.0.4", "GuideLLM container image with parser")
 	cmd.Flags().IntVar(&samples, "samples", 3, "Number of benchmark samples (Job completions)")
 	cmd.Flags().IntVar(&parallelism, "parallelism", 1, "Job parallelism for benchmark runs")
-	cmd.Flags().StringVar(&pause, "pause", "10s", "Pause after each benchmark before Job completes")
+	cmd.Flags().DurationVar(&pause, "pause", 10*time.Second, "Pause after each benchmark job completes")
 	cmd.Flags().StringSliceVar(&metricsProfiles, "metrics-profile", []string{"maas-gateway-perf-metrics.yml"}, "Comma separated list of metrics profiles to use")
 	cmd.MarkFlagRequired("gateway-host")
 	cmd.MarkFlagRequired("simulator-host")

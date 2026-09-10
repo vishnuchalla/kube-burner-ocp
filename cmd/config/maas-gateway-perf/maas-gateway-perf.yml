@@ -1,5 +1,5 @@
 ---
-{{ $guidellmImage := .GUIDELLM_IMAGE | default "quay.io/cloud-bulldozer/guidellm-parser:latest" }}
+{{ $guidellmImage := .GUIDELLM_IMAGE | default "ghcr.io/cloud-bulldozer/guidellm-results-parser:v0.0.4" }}
 {{ $guidellmES := .ES_SERVER }}
 {{ $guidellmESIndex := .ES_INDEX }}
 {{ $samples := .SAMPLES | default 3 }}
@@ -62,13 +62,14 @@ jobs:
     gc: false
     cleanup: false
     preLoadImages: false
-    qps: 5
-    burst: 5
+    qps: {{ $.QPS }}
+    burst: {{ $.BURST }}
+    waitWhenFinished: true
+    jobPause: {{ $pause }}
     objects:
     - objectTemplate: guidellm-job.yml
       inputVars:
         jobName: baseline-{{ $size }}-{{ $provider }}-c{{ $rate }}
-        pause: {{ $pause }}
         parallelism: {{ $parallelism }}
         completions: {{ $samples }}
         env:
@@ -100,15 +101,16 @@ jobs:
     gc: false
     cleanup: false
     preLoadImages: false
-    qps: 5
-    burst: 5
+    qps: {{ $.QPS }}
+    burst: {{ $.BURST }}
+    waitWhenFinished: true
+    jobPause: {{ $pause }}
     objects:
     - objectTemplate: guidellm-job.yml
       inputVars:
         jobName: gateway-{{ $size }}-{{ $provider }}-c{{ $rate }}
         gatewayIP: {{ $gatewayIP }}
         gatewayHostname: {{ $.GATEWAY_HOSTNAME }}
-        pause: {{ $pause }}
         parallelism: {{ $parallelism }}
         completions: {{ $samples }}
         env:

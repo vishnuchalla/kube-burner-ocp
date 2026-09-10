@@ -49,7 +49,6 @@ spec:
             --job-name={{ .jobName }} \
             --sample=${JOB_COMPLETION_INDEX}
           {{- end }}
-          sleep {{ .pause }}
           exit $rc
         env:
         {{ range $k, $v := .env }}
