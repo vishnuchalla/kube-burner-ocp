@@ -257,7 +257,6 @@ teardown_file() {
     STORAGE_PARAMETER="--storage-class ${KUBE_BURNER_OCP_STORAGE_CLASS}"
   fi
   run_cmd ${KUBE_BURNER_OCP} virt-capacity-benchmark ${STORAGE_PARAMETER} --max-iterations 2  --data-volume-count 2 --vms 2 --skip-migration-job --skip-resize-job
-  run_cmd kube-burner-ocp virt-capacity-benchmark --cleanup-only
   for iteration in 0 1; do
     check_metric_recorded ./virt-capacity-benchmark/iteration-${iteration} create-vms-${iteration} vmiLatency vmReadyLatency
     check_quantile_recorded ./virt-capacity-benchmark/iteration-${iteration} create-vms-${iteration} vmiLatency VMReady
@@ -277,7 +276,6 @@ teardown_file() {
     STORAGE_PARAMETER="--storage-class ${KUBE_BURNER_OCP_STORAGE_CLASS}"
   fi
   run_cmd ${KUBE_BURNER_OCP} virt-parallel ${STORAGE_PARAMETER} --max-iterations 2 --data-volume-count 2 --initial-vms 2 --increment 2 --skip-migration-job --skip-resize-job
-  run_cmd kube-burner-ocp virt-parallel --cleanup-only
   for iteration in 0 1; do
     check_metric_recorded ./virt-parallel/iteration-${iteration} virt-parallel-create-vms-${iteration} vmiLatency vmReadyLatency
     check_quantile_recorded ./virt-parallel/iteration-${iteration} virt-parallel-create-vms-${iteration} vmiLatency VMReady
@@ -313,7 +311,7 @@ teardown_file() {
   if [ -n "$KUBE_BURNER_OCP_STORAGE_CLASS" ]; then
     STORAGE_PARAMETER="--storage-class ${KUBE_BURNER_OCP_STORAGE_CLASS}"
   fi
-  run_cmd ${KUBE_BURNER_OCP} virt-clone-multi ${STORAGE_PARAMETER} --namespaces 2 --iterations 1 --vms-per-iteration 2 --data-volume-count 1 --cleanup
+  run_cmd ${KUBE_BURNER_OCP} virt-clone-multi ${STORAGE_PARAMETER} --namespaces 2 --iterations 1 --vms-per-iteration 2 --data-volume-count 1
   local jobs=("virt-clone-multi-create-base-vm" "virt-clone-multi-create-vms")
   for job in "${jobs[@]}"; do
     check_metric_recorded ./virt-clone-multi-results ${job} dvLatency dvReadyLatency
@@ -352,13 +350,14 @@ teardown_file() {
     STORAGE_PARAMETER="--storage-class ${KUBE_BURNER_OCP_STORAGE_CLASS}"
   fi
   run_cmd ${KUBE_BURNER_OCP} dv-clone ${STORAGE_PARAMETER} --access-mode RWO --iterations 2 --iteration-clones 2
-  # Delete all resources before testing results to ensure they are deleted
-  run_cmd oc delete ns -l kube-burner.io/test-name=dv-clone
   local jobs=("create-base-image-dv" "create-clone-dvs")
   for job in "${jobs[@]}"; do
     check_metric_recorded ./dv-clone-results ${job} dvLatency dvReadyLatency
     check_quantile_recorded ./dv-clone-results ${job} dvLatency Ready
   done
+  # Clean up via the workload so snapshot finalizers are cleared - a plain "oc delete ns" hangs
+  run_cmd ${KUBE_BURNER_OCP} dv-clone --cleanup
+  check_destroyed_ns kube-burner.io/test-name=dv-clone
 }
 
 # bats test_tags=workload:crd-scale
@@ -390,8 +389,9 @@ teardown_file() {
 
 # bats test_tags=workload:batch-churn
 @test "batch-churn: basic execution with churn" {
+  cd ../../cmd/config/batch-churn
   run_cmd ${KUBE_BURNER_OCP} init \
-    -c ../../cmd/config/batch-churn/config.yml \
+    -c config.yml \
     --iterations=2 \
     --churn-cycles=1 \
     --churn-delay=5s \
@@ -413,8 +413,9 @@ teardown_file() {
 
 # bats test_tags=workload:batch-churn
 @test "batch-churn: watcher-spam mode" {
+  cd ../../cmd/config/batch-churn
   run_cmd ${KUBE_BURNER_OCP} init \
-    -c ../../cmd/config/batch-churn/config.yml \
+    -c config.yml \
     --iterations=1 \
     --set WATCHER_MODE=true \
     --set SECRET_WATCHERS=10 \

@@ -9,16 +9,18 @@ spec:
       labels:
         kubevirt.io/os: fedora
     spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution: {{.NODE_SELECTOR|toJson}}
       terminationGracePeriodSeconds: 0
+      accessCredentials:
+      - sshPublicKey:
+          propagationMethod:
+            noCloud: {}
+          source:
+            secret:
+              secretName: "{{ .sshPublicKeySecret }}-{{.Iteration}}"
       domain:
-        cpu:
-          cores: {{.vmCPU}}
         resources:
           requests:
-            memory: {{.vmMemory}}
+            memory: 1Gi
         devices:
           disks:
           - name: containerdisk
@@ -30,6 +32,12 @@ spec:
           - name: emptydisk
             disk:
               bus: virtio
+          interfaces:
+          - name: default
+            masquerade: {}
+      networks:
+      - name: default
+        pod: {}
       volumes:
       - name: containerdisk
         containerDisk:
@@ -39,6 +47,7 @@ spec:
         cloudInitNoCloud:
           userData: |-
             #cloud-config
+            user: fedora
             password: perfscale
             chpasswd: { expire: False }
       - name: emptydisk
