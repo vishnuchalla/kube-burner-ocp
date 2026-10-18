@@ -13,22 +13,48 @@
 {{ $gatewayIP := .GATEWAY_IP }}
 {{ $uuid := .UUID }}
 
-{{ $payloads := dict
-  "small" (dict "prompt" "32" "output" "64")
-  "medium" (dict "prompt" "256" "output" "512")
-  "large" (dict "prompt" "1024" "output" "1024")
-  "very-large" (dict "prompt" "2048" "output" "2048")
-}}
-
 {{ $selectedProviders := splitList "," .PROVIDERS }}
-{{ $selectedPayloads := splitList "," .PAYLOAD_SIZES }}
 {{ $concurrencyLevels := splitList "," .CONCURRENCY_LEVELS }}
+{{ $loadProfiles := splitList "," (.LOAD_PROFILES | default "constant") }}
+{{ $apiKeySecret := .API_KEY_SECRET }}
+{{ $identities := .IDENTITIES | default 0 }}
+{{ $keysPerPod := .KEYS_PER_POD | default 1 }}
+{{ $podCPUMillis := .POD_CPU_MILLIS | default 250 }}
+{{ $podMemoryMi := .POD_MEMORY_MI | default 256 }}
+{{ $meteringNamespace := .METERING_NAMESPACE | default "enmaas" }}
+{{ $completions := .COMPLETIONS | default $samples }}
+{{ $tokenizer := .TOKENIZER | default "gpt2" }}
+{{ $targets := splitList "," (.TARGETS | default "baseline,gateway") }}
+{{ $seedRequests := .SEED_REQUESTS | default 0 }}
+{{ $seedCompletions := .SEED_COMPLETIONS | default $parallelism }}
+{{ $turns := .TURNS | default 1 }}
+{{ $thinkTime := .THINK_TIME_ENABLED | default false }}
+{{ $delayAvg := .THINK_TIME_AVG | default "0" }}
+{{ $delayMin := .THINK_TIME_MIN | default "0" }}
+{{ $delayMax := .THINK_TIME_MAX | default "0" }}
+{{ $delayStdev := .THINK_TIME_STDEV | default "0" }}
+
+# Payload shapes arrive pre-resolved from the CLI as "label:promptTokens:outputTokens"
+# triples, so presets and inline <prompt>:<output> pairs are handled identically here.
+{{ $payloadSpecs := splitList "," .PAYLOAD_SPECS }}
 
 global:
   gc: {{.GC}}
   gcMetrics: {{.GC_METRICS}}
   measurements:
     - name: jobLatency
+{{- if gt ($identities | int) 0 }}
+  # Mint the tenant pool before any job and revoke it after the last one.
+  # afterAllJobs runs even when jobs fail; the mint side also sweeps leftovers,
+  # so an aborted run cannot accumulate orphaned users.
+  hooks:
+    - cmd: ["maas-identities.sh", "mint", "{{ $identities }}", "{{ $apiKeySecret }}", "maas-perf-test", "{{ $meteringNamespace }}"]
+      when: beforeAllJobs
+      background: false
+    - cmd: ["maas-identities.sh", "revoke", "{{ $apiKeySecret }}", "maas-perf-test", "{{ $meteringNamespace }}"]
+      when: afterAllJobs
+      background: false
+{{- end }}
 
 metricsEndpoints:
 {{ if .ES_SERVER }}
@@ -49,14 +75,68 @@ metricsEndpoints:
 {{ end }}
 
 jobs:
+{{ if and (gt ($seedRequests | int) 0) $apiKeySecret }}
+  # -------------------------------------------------------
+  # Seeding — give every tenant usage history before measuring
+  # -------------------------------------------------------
+  # The quota-spend path is only exercised once a tenant has rows to scan, so a
+  # cold pool understates metering cost. This runs through the gateway because
+  # the metering write path is what needs the history, and it is not indexed.
+  - name: seed-usage
+    namespace: maas-perf-test
+    jobIterations: 1
+    namespacedIterations: false
+    gc: false
+    cleanup: false
+    preLoadImages: false
+    skipIndexing: true
+    qps: {{ $.QPS }}
+    burst: {{ $.BURST }}
+    waitWhenFinished: true
+    jobPause: {{ $pause }}
+    objects:
+    - objectTemplate: guidellm-job.yml
+      inputVars:
+        jobName: seed-usage
+        gatewayIP: {{ $gatewayIP }}
+        gatewayHostname: {{ $.GATEWAY_HOSTNAME }}
+        parallelism: {{ $parallelism }}
+        completions: {{ $seedCompletions }}
+        jobDeadline: {{ $jobDeadline }}
+        apiKeySecret: {{ $apiKeySecret }}
+        keysPerPod: {{ $keysPerPod }}
+        podCPUMillis: {{ $podCPUMillis }}
+        podMemoryMi: {{ $podMemoryMi }}
+        tokenizer: {{ $tokenizer }}
+        env:
+          BENCH_TARGET: {{ $gatewayHost }}
+          BENCH_SEED_REQUESTS: "{{ $seedRequests }}"
+          BENCH_PROFILE: seed
+          BENCH_PROMPT_TOKENS: "32"
+          BENCH_OUTPUT_TOKENS: "8"
+          BENCH_MODEL: "{{ first $selectedProviders }}"
+        image: {{ $guidellmImage }}
+        # Seeding returns before the indexing step, so these are only here to
+        # satisfy the object template's strict variable lookup.
+        ES_SERVER: {{ $guidellmES }}
+        ES_INDEX: {{ $guidellmESIndex }}
+{{ end }}
+
   # -------------------------------------------------------
   # Baseline benchmarks — direct to simulator (no gateway)
   # -------------------------------------------------------
+{{ if has "baseline" $targets }}
+{{ range $profile := $loadProfiles }}
 {{ range $provider := $selectedProviders }}
-{{ range $size := $selectedPayloads }}
-{{ $payload := get $payloads $size }}
+{{ range $spec := $payloadSpecs }}
+{{ $parts := splitList ":" $spec }}
+{{ $size := index $parts 0 }}
+{{ $promptTokens := index $parts 1 }}
+{{ $outputTokens := index $parts 2 }}
 {{ range $rate := $concurrencyLevels }}
-  - name: baseline-{{ $size }}-{{ $provider }}-c{{ $rate }}
+{{ $name := printf "baseline-%s-%s-c%s" $size $provider $rate }}
+{{ if ne $profile "constant" }}{{ $name = printf "baseline-%s-%s-%s-c%s" $profile $size $provider $rate }}{{ end }}
+  - name: {{ $name }}
     namespace: maas-perf-test
     jobIterations: 1
     namespacedIterations: false
@@ -70,22 +150,35 @@ jobs:
     objects:
     - objectTemplate: guidellm-job.yml
       inputVars:
-        jobName: baseline-{{ $size }}-{{ $provider }}-c{{ $rate }}
+        jobName: {{ $name }}
         parallelism: {{ $parallelism }}
-        completions: {{ $samples }}
+        completions: {{ $completions }}
         jobDeadline: {{ $jobDeadline }}
+        apiKeySecret: {{ $apiKeySecret }}
+        keysPerPod: {{ $keysPerPod }}
+        podCPUMillis: {{ $podCPUMillis }}
+        podMemoryMi: {{ $podMemoryMi }}
+        tokenizer: {{ $tokenizer }}
         env:
           BENCH_TARGET: {{ $simulatorHost }}
           BENCH_MAX_SECONDS: "{{ $benchmarkDuration }}"
           BENCH_WARMUP: "{{ $warmup }}"
-          BENCH_PROFILE: constant
+          BENCH_PROFILE: {{ $profile }}
           BENCH_RATE: "{{ $rate }}"
-          BENCH_PROMPT_TOKENS: "{{ $payload.prompt }}"
-          BENCH_OUTPUT_TOKENS: "{{ $payload.output }}"
+          BENCH_PROMPT_TOKENS: "{{ $promptTokens }}"
+          BENCH_OUTPUT_TOKENS: "{{ $outputTokens }}"
           BENCH_MODEL: "{{ $provider }}"
+          BENCH_TURNS: "{{ $turns }}"
+          BENCH_THINK_TIME: "{{ $thinkTime }}"
+          BENCH_DELAY_AVG: "{{ $delayAvg }}"
+          BENCH_DELAY_MIN: "{{ $delayMin }}"
+          BENCH_DELAY_MAX: "{{ $delayMax }}"
+          BENCH_DELAY_STDEV: "{{ $delayStdev }}"
         image: {{ $guidellmImage }}
         ES_SERVER: {{ $guidellmES }}
         ES_INDEX: {{ $guidellmESIndex }}
+{{ end }}
+{{ end }}
 {{ end }}
 {{ end }}
 {{ end }}
@@ -93,11 +186,18 @@ jobs:
   # -------------------------------------------------------
   # Gateway benchmarks — through MaaS gateway
   # -------------------------------------------------------
+{{ if has "gateway" $targets }}
+{{ range $profile := $loadProfiles }}
 {{ range $provider := $selectedProviders }}
-{{ range $size := $selectedPayloads }}
-{{ $payload := get $payloads $size }}
+{{ range $spec := $payloadSpecs }}
+{{ $parts := splitList ":" $spec }}
+{{ $size := index $parts 0 }}
+{{ $promptTokens := index $parts 1 }}
+{{ $outputTokens := index $parts 2 }}
 {{ range $rate := $concurrencyLevels }}
-  - name: gateway-{{ $size }}-{{ $provider }}-c{{ $rate }}
+{{ $name := printf "gateway-%s-%s-c%s" $size $provider $rate }}
+{{ if ne $profile "constant" }}{{ $name = printf "gateway-%s-%s-%s-c%s" $profile $size $provider $rate }}{{ end }}
+  - name: {{ $name }}
     namespace: maas-perf-test
     jobIterations: 1
     namespacedIterations: false
@@ -111,24 +211,37 @@ jobs:
     objects:
     - objectTemplate: guidellm-job.yml
       inputVars:
-        jobName: gateway-{{ $size }}-{{ $provider }}-c{{ $rate }}
+        jobName: {{ $name }}
         gatewayIP: {{ $gatewayIP }}
         gatewayHostname: {{ $.GATEWAY_HOSTNAME }}
         parallelism: {{ $parallelism }}
-        completions: {{ $samples }}
+        completions: {{ $completions }}
         jobDeadline: {{ $jobDeadline }}
+        apiKeySecret: {{ $apiKeySecret }}
+        keysPerPod: {{ $keysPerPod }}
+        podCPUMillis: {{ $podCPUMillis }}
+        podMemoryMi: {{ $podMemoryMi }}
+        tokenizer: {{ $tokenizer }}
         env:
           BENCH_TARGET: {{ $gatewayHost }}
           BENCH_MAX_SECONDS: "{{ $benchmarkDuration }}"
           BENCH_WARMUP: "{{ $warmup }}"
-          BENCH_PROFILE: constant
+          BENCH_PROFILE: {{ $profile }}
           BENCH_RATE: "{{ $rate }}"
-          BENCH_PROMPT_TOKENS: "{{ $payload.prompt }}"
-          BENCH_OUTPUT_TOKENS: "{{ $payload.output }}"
+          BENCH_PROMPT_TOKENS: "{{ $promptTokens }}"
+          BENCH_OUTPUT_TOKENS: "{{ $outputTokens }}"
           BENCH_MODEL: "{{ $provider }}"
+          BENCH_TURNS: "{{ $turns }}"
+          BENCH_THINK_TIME: "{{ $thinkTime }}"
+          BENCH_DELAY_AVG: "{{ $delayAvg }}"
+          BENCH_DELAY_MIN: "{{ $delayMin }}"
+          BENCH_DELAY_MAX: "{{ $delayMax }}"
+          BENCH_DELAY_STDEV: "{{ $delayStdev }}"
         image: {{ $guidellmImage }}
         ES_SERVER: {{ $guidellmES }}
         ES_INDEX: {{ $guidellmESIndex }}
+{{ end }}
+{{ end }}
 {{ end }}
 {{ end }}
 {{ end }}

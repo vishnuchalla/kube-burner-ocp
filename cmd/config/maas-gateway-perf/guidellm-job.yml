@@ -12,6 +12,8 @@ spec:
 {{- end }}
   template:
     metadata:
+      labels:
+        app: guidellm
       annotations:
         sidecar.istio.io/inject: "false"
     spec:
@@ -41,46 +43,155 @@ spec:
           # process, and that startup burst makes the MaaS gateway return 500 for
           # one of the probes, which aborts the whole run. A genuinely unreachable
           # endpoint still surfaces immediately as errored requests.
-          BACKEND="kind=openai_http,target=${BENCH_TARGET},model=${BENCH_MODEL}"
-          BACKEND="${BACKEND},verify=false,validate_backend=false"
-          if [ -f /var/run/secrets/kubernetes.io/serviceaccount/token ]; then
-            BACKEND="${BACKEND},api_key=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
+          BASE_BACKEND="kind=openai_http,target=${BENCH_TARGET},model=${BENCH_MODEL}"
+          BASE_BACKEND="${BASE_BACKEND},verify=false,validate_backend=false"
+
+          DATA="kind=synthetic_text,prompt_tokens=${BENCH_PROMPT_TOKENS},output_tokens=${BENCH_OUTPUT_TOKENS}"
+
+          if [ "${BENCH_SEED_REQUESTS:-0}" -gt 0 ]; then
+            # Seeding is a fixture, not a measurement: every tenant sends a fixed
+            # number of completions one at a time so the metering DB has quota and
+            # usage history before the benchmark reads it. Results are discarded.
+            MODE="seed"
+            PROFILE="kind=synchronous"
+            CONSTRAINT="kind=max_requests,count=${BENCH_SEED_REQUESTS}"
+          else
+            MODE="benchmark"
+            # Open-loop profiles (constant, poisson) take the level as a request
+            # rate and keep sending regardless of how slow the backend gets.
+            # The closed-loop profile (concurrent) takes it as a stream count and
+            # self-throttles, so throughput becomes an output rather than an input.
+            case "${BENCH_PROFILE}" in
+              concurrent)
+                PROFILE="kind=concurrent,streams=${BENCH_RATE}"
+                ;;
+              *)
+                PROFILE="kind=${BENCH_PROFILE},rate=${BENCH_RATE}"
+                ;;
+            esac
+            PROFILE="${PROFILE},warmup=${BENCH_WARMUP}"
+            CONSTRAINT="kind=max_duration,seconds=${BENCH_MAX_SECONDS}"
+            # Multi-turn keeps a tenant on one conversation instead of opening a
+            # fresh one per request, which is what makes think time meaningful:
+            # guidellm models think time as a requeue delay *between* turns.
+            if [ "${BENCH_TURNS:-1}" -gt 1 ]; then
+              DATA="${DATA},turns=${BENCH_TURNS}"
+            fi
+            if [ "${BENCH_THINK_TIME:-false}" = "true" ]; then
+              DATA="${DATA},delay=${BENCH_DELAY_AVG},delay_min=${BENCH_DELAY_MIN},delay_max=${BENCH_DELAY_MAX}"
+              # guidellm rejects a zero stdev, which a min==max window produces.
+              if [ "${BENCH_DELAY_STDEV}" != "0" ]; then
+                DATA="${DATA},delay_stdev=${BENCH_DELAY_STDEV}"
+              fi
+            fi
           fi
-          guidellm run \
-            --backend "${BACKEND}" \
-            --profile "kind=${BENCH_PROFILE},rate=${BENCH_RATE},warmup=${BENCH_WARMUP}" \
-            --constraint "kind=max_duration,seconds=${BENCH_MAX_SECONDS}" \
-            --data "kind=synthetic_text,prompt_tokens=${BENCH_PROMPT_TOKENS},output_tokens=${BENCH_OUTPUT_TOKENS}" \
-            --tokenizer "kind=huggingface_auto,model=${BENCH_TOKENIZER}" \
-            --output "kind=json,path=/results/benchmarks.json" \
-            --disable-progress
-          rc=$?
+
+          # Drive one tenant. Each identity gets its own guidellm process, its own
+          # results file and its own sample index, so a pod running K of them is
+          # indistinguishable from K single-tenant pods on the wire.
+          run_identity() {
+            _key="$1"
+            _id="$2"
+            _sample="$3"
+            _out="/results/benchmarks-${_sample}.json"
+            guidellm run \
+              --backend "${BASE_BACKEND},api_key=${_key}" \
+              --label "identity=${_id}" \
+              --label "profile=${BENCH_PROFILE}" \
+              --profile "${PROFILE}" \
+              --constraint "${CONSTRAINT}" \
+              --data "${DATA}" \
+              --tokenizer "kind=huggingface_auto,model=${BENCH_TOKENIZER}" \
+              --output "kind=json,path=${_out}" \
+              --disable-progress
+            _rc=$?
+            if [ "${MODE}" = "seed" ]; then
+              echo "seeded ${BENCH_SEED_REQUESTS} requests for ${_id} (rc=${_rc})"
+              return $_rc
+            fi
           {{- if .ES_SERVER }}
-          guidellm_parser.py \
-            --results=/results/benchmarks.json \
-            --uuid={{ .UUID }} \
-            --es-server={{ .ES_SERVER }} \
-            --es-index={{ .ES_INDEX }} \
-            --job-name={{ .jobName }} \
-            --sample=${JOB_COMPLETION_INDEX}
+            guidellm_parser.py \
+              --results="${_out}" \
+              --uuid={{ .UUID }} \
+              --es-server={{ .ES_SERVER }} \
+              --es-index={{ .ES_INDEX }} \
+              --job-name={{ .jobName }} \
+              --sample="${_sample}"
           {{- end }}
-          exit $rc
+            return $_rc
+          }
+
+          RC=0
+          INDEX="${JOB_COMPLETION_INDEX:-0}"
+          # Per-identity simulation. The whole key pool is mounted on every pod;
+          # a pod claims the contiguous slice of BENCH_KEYS_PER_POD rows that its
+          # completion index maps to, so N tenants need ceil(N/K) pods rather than
+          # N. Each row is a distinct api_key_auth cache entry and a distinct
+          # metering attribution. Falls back to the ServiceAccount token when no
+          # pool is mounted.
+          if [ -s /identities/keys.txt ]; then
+            POOL_SIZE=$(grep -c . /identities/keys.txt)
+            KEYS_PER_POD="${BENCH_KEYS_PER_POD:-1}"
+            PODS=$(( (POOL_SIZE + KEYS_PER_POD - 1) / KEYS_PER_POD ))
+            POD_SLOT=$(( INDEX % PODS ))
+            echo "pod slot ${POD_SLOT} of ${PODS} driving up to ${KEYS_PER_POD} of ${POOL_SIZE} identities"
+            PIDS=""
+            OFFSET=0
+            while [ "${OFFSET}" -lt "${KEYS_PER_POD}" ]; do
+              ROW_NUM=$(( POD_SLOT * KEYS_PER_POD + OFFSET + 1 ))
+              # The last pod gets a short slice when the pool does not divide evenly.
+              if [ "${ROW_NUM}" -gt "${POOL_SIZE}" ]; then
+                break
+              fi
+              ROW=$(grep . /identities/keys.txt | sed -n "${ROW_NUM}p")
+              IDENTITY=$(printf '%s' "${ROW}" | cut -f1)
+              API_KEY=$(printf '%s' "${ROW}" | cut -f2)
+              echo "  identity row ${ROW_NUM}: ${IDENTITY}"
+              run_identity "${API_KEY}" "${IDENTITY}" "$(( INDEX * KEYS_PER_POD + OFFSET ))" &
+              PIDS="${PIDS} $!"
+              OFFSET=$(( OFFSET + 1 ))
+            done
+            for pid in ${PIDS}; do
+              wait "${pid}" || RC=1
+            done
+          else
+            SA_TOKEN=""
+            if [ -f /var/run/secrets/kubernetes.io/serviceaccount/token ]; then
+              SA_TOKEN="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
+            fi
+            run_identity "${SA_TOKEN}" "serviceaccount" "${INDEX}" || RC=1
+          fi
+          exit $RC
         env:
         {{ range $k, $v := .env }}
         - name: {{ $k }}
           value: "{{ $v }}"
         {{ end }}
         - name: BENCH_TOKENIZER
-          value: "gpt2"
+          value: "{{ .tokenizer | default "gpt2" }}"
+        - name: BENCH_KEYS_PER_POD
+          value: "{{ .keysPerPod | default 1 }}"
         - name: HF_HOME
           value: /results
         volumeMounts:
         - name: results
           mountPath: /results
+        {{- if .apiKeySecret }}
+        - name: identities
+          mountPath: /identities
+          readOnly: true
+        {{- end }}
         resources:
           requests:
-            cpu: "250m"
-            memory: 256Mi
+            cpu: "{{ .podCPUMillis | default 250 }}m"
+            memory: {{ .podMemoryMi | default 256 }}Mi
       volumes:
       - name: results
         emptyDir: {}
+      {{- if .apiKeySecret }}
+      # Pool of simulated tenants: keys.txt holds one `user<TAB>key` row per
+      # identity. Pods claim a slice of the pool by JOB_COMPLETION_INDEX.
+      - name: identities
+        secret:
+          secretName: {{ .apiKeySecret }}
+      {{- end }}

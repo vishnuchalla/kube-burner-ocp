@@ -1611,9 +1611,9 @@ kube-burner-ocp maas-gateway-perf
     5x ExternalModel CRs (openai, azure-openai, bedrock, anthropic, vertexai)
     5x HTTPRoutes (path-based + header-based routing)
     5x Secrets (dummy provider credentials)
-  Jobs 2..N: baseline-{size}-{provider}-c{rate}
+  Jobs 2..N: baseline-[{profile}-]{size}-{provider}-c{level}
     GuideLLM K8s Job → direct to simulator (no gateway)
-  Jobs N+1..2N: gateway-{size}-{provider}-c{rate}
+  Jobs N+1..2N: gateway-[{profile}-]{size}-{provider}-c{level}
     GuideLLM K8s Job → through MaaS gateway (BBR)
   Last job: cleanup
 ```
@@ -1624,9 +1624,20 @@ kube-burner-ocp maas-gateway-perf
 | ---- | ----------- | ------- |
 | `--gateway-host` | Full gateway service URL | **(required)** |
 | `--simulator-host` | Simulator service URL | **(required)** |
+| `--gateway-ip` | Gateway ClusterIP pinned into `hostAliases`, bypassing the ingress router. Leave unset to exercise the edge | `""` |
 | `--providers` | Comma-separated provider model names | `gpt-4o-openai,claude-sonnet-anthropic` |
-| `--payload-sizes` | Comma-separated sizes: small(32/64), medium(256/512), large(1024/1024), very-large(2048/2048) | `small,medium` |
-| `--concurrency-levels` | Comma-separated concurrency levels | `8,32,64,128,512` |
+| `--payload-sizes` | Comma-separated payload shapes: a preset — small(32/64), medium(256/512), large(1024/1024), very-large(2048/2048), qa(64/256), agentic(8192/2048) — or an inline `<promptTokens>:<outputTokens>` pair | `small,medium` |
+| `--concurrency-levels` | Comma-separated load levels. Requests/sec for `constant` and `poisson`; concurrent streams for `concurrent` | `8,32,64,128,512` |
+| `--load-profiles` | Comma-separated GuideLLM profile kinds: `constant`, `poisson`, `concurrent` | `constant` |
+| `--targets` | Which halves of the A/B matrix to run: `baseline`, `gateway`, or both | `baseline,gateway` |
+| `--api-key-secret` | Pre-existing Secret holding a `keys.txt` of `user<TAB>key` rows for per-identity simulation | `""` (ServiceAccount token) |
+| `--identities` | Mint this many tenants before the run and revoke them after | `0` (disabled) |
+| `--keys-per-pod` | Tenants driven by one pod, each as its own GuideLLM process. Trades pod count for per-pod CPU/memory | `1` |
+| `--metering-namespace` | Namespace of the `metering-service` that mints identities; required with `--identities` | `""` |
+| `--think-time` | Soak mode: `<min>,<max>` delay sampled between conversation turns, e.g. `15s,45s` | `""` (disabled) |
+| `--turns` | User turns per conversation; derived from `--think-time` and `--benchmark-duration` when think time is set | `1` |
+| `--seed-requests-per-identity` | Completions sent per tenant through the gateway before benchmarking, so usage history exists | `0` (skip) |
+| `--tokenizer` | Tokenizer for synthetic prompts (HuggingFace id, needs egress to `huggingface.co`) | `gpt2` |
 | `--job-deadline` | Hard per-Job deadline (`activeDeadlineSeconds`); `0` derives it as `ceil(samples/parallelism) × (warmup + benchmark-duration) × 3 + 5m` | `0` (derived) |
 | `--benchmark-duration` | Duration of each benchmark run | `90s` |
 | `--warmup` | Warmup period discarded from results | `30s` |
@@ -1636,11 +1647,186 @@ kube-burner-ocp maas-gateway-perf
 | `--pause` | Pause after each benchmark job completes | `10s` |
 | `--metrics-profile` | Metrics profiles to use | `maas-gateway-perf-metrics.yml` |
 
+### Load profiles (open loop vs closed loop)
+
+`--load-profiles` selects how load is applied. This is the single most
+important choice in the run, because the two families answer different
+questions and are not comparable:
+
+| Profile | Loop | `--concurrency-levels` means | Use it to |
+| ------- | ---- | ---------------------------- | --------- |
+| `constant` | Open | requests/sec, uniformly paced | Find saturation. Arrivals do not slow down when the service does, so queueing and overload become visible. |
+| `poisson` | Open | requests/sec, random arrivals | Same, but with realistic burstiness. Uniform pacing understates queueing at the same mean rate. |
+| `concurrent` | Closed | number of in-flight streams | Model a fixed client population. Throughput becomes an *output*; the system can never be driven past N concurrent. |
+
+A closed-loop run cannot overload the target: when the backend slows, each
+stream waits, so offered load drops in sympathy. That self-throttling hides
+exactly the window you care about (coordinated omission), which is why
+saturation hunting needs `constant` or `poisson`. Conversely, `concurrent` is
+the honest way to ask "what do N simultaneous clients experience".
+
+When reading results, check error rate *before* latency. A target that sheds
+load (HTTP 429) returns rejections fast, which pulls p95 **down** — a shedding
+backend can score better on latency than a healthy one.
+
+### Per-identity simulation
+
+By default every benchmark pod authenticates with the same ServiceAccount
+token, so the gateway sees one tenant. Pass `--api-key-secret` to simulate
+distinct users instead:
+
+```bash
+printf 'user-01\tsk-aaa\nuser-02\tsk-bbb\nuser-03\tsk-ccc\n' > keys.txt
+oc -n maas-perf-test create secret generic maas-identities --from-file=keys.txt
+
+kube-burner-ocp maas-gateway-perf \
+  --gateway-host https://maas.apps.example.com \
+  --simulator-host http://llm-d-inference-sim.llm.svc.cluster.local:8000 \
+  --api-key-secret maas-identities \
+  --parallelism 3
+```
+
+The whole pool is mounted on every pod. A pod claims the contiguous slice of
+`--keys-per-pod` rows that its `JOB_COMPLETION_INDEX` maps to and runs one
+GuideLLM process per row, so the gateway sees as many concurrent tenants as
+there are rows in flight — each one a distinct `api_key_auth` cache entry and a
+distinct metering attribution. Every process attaches its own
+`identity=<user>` label to the results and writes its own sample.
+
+#### Scaling the tenant pool
+
+GuideLLM holds a single credential per process, so an identity is always a
+process. What `--keys-per-pod` changes is how many of those processes share a
+pod:
+
+```bash
+# 500 tenants in 10 pods of 50 processes each
+kube-burner-ocp maas-gateway-perf \
+  --gateway-host https://maas.apps.example.com \
+  --simulator-host http://llm-d-inference-sim.llm.svc.cluster.local:8000 \
+  --identities 500 --metering-namespace <metering-ns> \
+  --keys-per-pod 50
+```
+
+Pod count becomes `ceil(identities / keys-per-pod)` and per-pod requests scale
+to `250m × keys-per-pod` CPU and `256Mi × keys-per-pod` memory, so the total
+reservation is unchanged — but it is packed into schedulable units instead of
+hundreds of tiny pods. At `--keys-per-pod 1` the behaviour is one tenant per
+pod, as before.
+
+Pick the value from node capacity: a pool of 500 at 50 keys/pod asks for 10
+pods of 12.5 CPU / 12.5Gi, which needs sizeable workers; the same pool at 10
+keys/pod is 50 pods of 2.5 CPU / 2.5Gi. Processes on one pod share a kernel
+network stack and a CPU quota, so very high values will make the client, not
+the gateway, the bottleneck — watch for client-side errors before trusting a
+saturation result.
+
+#### Minting identities automatically
+
+`--identities N` mints the pool for you via `beforeAllJobs` / `afterAllJobs`
+hooks, so no Secret has to be prepared by hand:
+
+```bash
+kube-burner-ocp maas-gateway-perf \
+  --gateway-host https://maas.apps.example.com \
+  --simulator-host http://llm-d-inference-sim.llm.svc.cluster.local:8000 \
+  --identities 10 --metering-namespace <metering-ns>
+```
+
+It implies `--api-key-secret maas-perf-identities`, raises `--parallelism` to
+`ceil(N / keys-per-pod)`, and sets `completions = samples × parallelism` so
+each sample sweeps the whole pool.
+Users are tagged `origin=kube-burner-maas-perf` and minting sweeps leftovers
+carrying that tag before it starts — an aborted run cannot accumulate orphans,
+since the teardown hook is best-effort but the sweep is not. To recover
+manually when the Secret is gone:
+
+```bash
+bash cmd/config/scripts/maas-identities.sh sweep <metering-ns>
+```
+
+The hook runs on the kube-burner host (it needs `oc` and `python3`) and
+port-forwards to `metering-service`.
+
+#### Seeding usage history
+
+The metering quota-spend path only does real work once a tenant has rows to
+scan, so a freshly minted pool understates metering cost. `--seed-requests-per-identity`
+runs a `seed-usage` job before the matrix in which every tenant sends that many
+completions, one at a time, through the gateway:
+
+```bash
+kube-burner-ocp maas-gateway-perf \
+  --gateway-host https://maas.apps.example.com \
+  --simulator-host http://llm-d-inference-sim.llm.svc.cluster.local:8000 \
+  --identities 500 --metering-namespace <metering-ns> \
+  --keys-per-pod 50 \
+  --seed-requests-per-identity 30
+```
+
+Seeding always targets the gateway, because the metering write path is what
+needs the history. It is not indexed and does not appear in results. It needs a
+tenant pool, so pass `--identities` or `--api-key-secret`.
+
+### Soak mode
+
+By default each request starts a fresh conversation, which models a stream of
+one-shot API calls. Real tenants read the answer before sending the next
+message, and that idle time changes everything downstream: connection reuse,
+cache residency, and whether the backend ever gets a chance to drain.
+
+`--think-time` turns a run into a soak by making each tenant hold one
+conversation and pause between turns:
+
+```bash
+kube-burner-ocp maas-gateway-perf \
+  --gateway-host https://maas.apps.example.com \
+  --simulator-host http://llm-d-inference-sim.llm.svc.cluster.local:8000 \
+  --identities 100 --metering-namespace <metering-ns> --keys-per-pod 25 \
+  --payload-sizes agentic \
+  --load-profiles concurrent --concurrency-levels 1 \
+  --think-time 15s,45s --benchmark-duration 15m
+```
+
+GuideLLM models think time as a requeue delay *between the turns of a
+conversation*, so it only has an effect when there is more than one turn.
+`--turns` is therefore raised automatically to
+`benchmark-duration / avg-think-time + 1`, which keeps conversations running
+for the whole measurement window instead of finishing early and leaving the
+tenant idle. Set `--turns` explicitly to override.
+
+The delay is sampled from a normal distribution clamped to the window, not a
+uniform one, with the standard deviation set to a quarter of the range so
+±2σ spans it. A `min == max` window yields a constant delay.
+
+One caveat worth knowing: GuideLLM counts concurrency in in-flight **requests**,
+not conversations, and releases the slot while a conversation is thinking
+([guidellm#1082](https://github.com/vllm-project/guidellm/issues/1082)). A run
+with `streams=N` and think time therefore represents more than N users. For
+TTFT drift and memory-leak soaks that is fine; if you need exactly N
+simultaneously-connected tenants, size the pool with `--identities` instead and
+keep the per-identity stream count at 1.
+
+### Exercising the edge
+
+`--gateway-ip` pins the gateway's ClusterIP into the pods' `hostAliases`, which
+resolves `--gateway-host` directly and **bypasses the ingress router**. That
+isolates the gateway, which is what you want when measuring gateway overhead.
+
+Leaving `--gateway-ip` unset resolves the hostname normally, so traffic
+traverses the router and its TLS termination along with the gateway. Faults
+that live at the edge — TLS handshake races, router connection limits, CDN
+behaviour — are only reachable that way, and they are invisible in a pinned
+run. Run both if the question is "where does it break" rather than "how much
+does the gateway cost".
+
 ### Test Matrix
 
-Total GuideLLM Jobs = `providers × payload_sizes × concurrency_levels × 2 (baseline + gateway)`
+Total GuideLLM Jobs = `load_profiles × providers × payload_sizes × concurrency_levels × 2 (baseline + gateway)`
 
-With defaults (`2 providers × 2 sizes × 5 levels × 2 modes`) = **40 GuideLLM Jobs**, each running `--samples` completions.
+With defaults (`1 profile × 2 providers × 2 sizes × 5 levels × 2 modes`) = **40 GuideLLM Jobs**, each running `--samples` completions. Adding a profile multiplies the matrix, so raise `--load-profiles` and `--concurrency-levels` together with care.
+
+Job names are unchanged for `constant` (`baseline-{size}-{provider}-c{rate}`) so existing dashboards keep working; other profiles are named `baseline-{profile}-{size}-{provider}-c{level}`.
 
 ### Available Providers
 
